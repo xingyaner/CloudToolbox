@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless Cloud Console</title>
+    <style>
+        :root { 
+            --primary: #007AFF; 
+            --bg: #F0F2F5; 
+            --terminal-bg: #1E1E1E; 
+            --terminal-text: #00FF00; 
+            --ai-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+        }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 240px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; padding: 20px; z-index: 10; }
+        .logo { font-size: 18px; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 8px; height: 8px; background: #28a745; border-radius: 50%; box-shadow: 0 0 5px #28a745; }
+        .nav-item { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; color: #666; transition: 0.2s; }
+        .nav-item.active { background: #E3F2FD; color: var(--primary); font-weight: bold; }
+        .main { flex: 1; display: flex; flex-direction: column; padding: 30px; overflow-y: auto; }
+        .panel { display: none; }
+        .panel.active { display: block; animation: fadeIn 0.3s; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
+        textarea, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; margin: 10px 0; font-family: monospace; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .terminal-window { background: var(--terminal-bg); border-radius: 8px; padding: 15px; color: var(--terminal-text); font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; }
+        
+        /* 复制按钮样式 */
+        .copy-btn {
+            float: right;
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #f0f0f0;
+            color: #555;
+            border-radius: 4px;
+            margin-top: -4px;
+        }
+        .copy-btn:hover { background: #e0e0e0; color: var(--primary); }
+
+        .result-label { font-size: 12px; font-weight: bold; color: #888; margin-bottom: 8px; display: block; }
+        .ai-box { border: 1px solid #764ba2; background: #fdfaff !important; display: none; margin-top: 15px; animation: fadeIn 0.5s; }
+        .btn-ai { background: var(--ai-gradient); margin-top: 15px; width: 100%; display: none; box-shadow: 0 4px 15px rgba(118, 126, 234, 0.3); }
+        
+        @keyframes fadeIn { from { opacity:0; transform:translateY(5px);} to { opacity:1; transform:translateY(0);} }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo"><div class="status-dot"></div> 云上工具箱</div>
+        <div class="nav-item active" onclick="switchTab('dedup')">⚡ 文本智能去重</div>
+        <div class="nav-item" onclick="switchTab('ocr')">👁️ 图像文字识别</div>
+        <div class="nav-item" onclick="switchTab('pwd')">🔐 安全密码生成</div>
+    </div>
+
+    <div class="main">
+        <div id="panel-dedup" class="panel active">
+            <div class="card">
+                <h2>☁️ 文本去重 (Deduplication)</h2>
+                <textarea id="inp-dedup" rows="6" placeholder="输入重复列表..."></textarea>
+                <button onclick="runCloudTask('dedup')">执行云端计算</button>
+            </div>
+        </div>
+
+        <div id="panel-ocr" class="panel">
+            <div class="card">
+                <h2>☁️ 图像文字识别 (Cloud OCR)</h2>
+                <input type="file" id="inp-ocr-file" accept="image/*" onchange="previewImage(this)">
+                <div style="text-align: center;"><img id="img-preview"></div>
+                <br>
+                <button id="btn-ocr" onclick="runCloudTask('ocr')">开始识别文字</button>
+            </div>
+        </div>
+
+        <div id="panel-pwd" class="panel">
+            <div class="card">
+                <h2>☁️ 熵增密码生成 (Secrets)</h2>
+                <input type="range" id="inp-pwd-len" min="8" max="64" value="16" oninput="document.getElementById('pwd-val').innerText=this.value">
+                <span>长度: <b id="pwd-val">16</b></span><br><br>
+                <button onclick="runCloudTask('pwd')">生成安全密码</button>
+            </div>
+        </div>
+
+        <div class="card" id="result-card" style="display:none">
+            <div style="border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
+                <h2 style="margin:0; font-size: 18px;">计算结果 (Output)</h2>
+            </div>
+            
+            <!-- 原始结果区 -->
+            <div style="margin-bottom: 20px;">
+                <span class="result-label">
+                    📄 原始识别结果
+                    <button class="copy-btn" onclick="copyToClipboard('final-result')">📋 复制</button>
+                </span>
+                <div id="final-result" style="background:#f9f9f9; padding:15px; border-radius:6px; white-space:pre-wrap; font-family:monospace; border: 1px solid #eee;"></div>
+            </div>
+            
+            <!-- AI 触发按钮 -->
+            <button id="btn-ai-trigger" class="btn-ai" onclick="runAiCleanup()">🚀 DeepSeek 智能语义修复与重排</button>
+            
+            <!-- AI 结果区 -->
+            <div id="ai-result-box" class="ai-box" style="padding:15px; border-radius:6px;">
+                <span class="result-label" style="color:#764ba2">
+                    🧠 AI 智能重排结果 (已去水印)
+                    <button class="copy-btn" onclick="copyToClipboard('ai-result-content')">📋 复制</button>
+                </span>
+                <div id="ai-result-content" style="white-space:pre-wrap; font-family:monospace; color: #333;"></div>
+            </div>
+        </div>
+
+        <div class="terminal-window" id="terminal">
+            <div>[System] 控制台就绪，等待用户指令...</div>
+        </div>
+    </div>
+
+<script>
+    const API_URL = "https://main-handler-toolbox-service-wfobwllmcq.cn-beijing.fcapp.run";
+    let currentImageBase64 = "";
+
+    function switchTab(id) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        document.getElementById('panel-' + id).classList.add('active');
+        document.getElementById('result-card').style.display = 'none';
+    }
+
+    function log(type, msg) {
+        const term = document.getElementById('terminal');
+        const time = new Date().toLocaleTimeString();
+        term.innerHTML += `<div><span style="color:#888">[${time}]</span> <span style="color:#4facfe">[${type}]</span> ${msg}</div>`;
+        term.scrollTop = term.scrollHeight;
+    }
+
+    // --- 🚀 新增：一键复制功能 ---
+    async function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).innerText;
+        if (!text || text.startsWith("⏳")) return;
+        
+        try {
+            await navigator.clipboard.writeText(text);
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "✅ 已复制";
+            btn.style.color = "#28a745";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.color = "#555";
+            }, 2000);
+            log('SYSTEM', '文本已成功复制到剪贴板');
+        } catch (err) {
+            log('ERROR', '复制失败: ' + err);
+        }
+    }
+
+    function previewImage(input) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('img-preview');
+                img.src = e.target.result; img.style.display = 'block';
+                currentImageBase64 = e.target.result.split(',')[1];
+                log('LOCAL', '图片读取成功');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function runCloudTask(type) {
+        let payload = { action: type };
+        if(type === 'dedup') payload.content = document.getElementById('inp-dedup').value;
+        else if(type === 'ocr') payload.image = currentImageBase64;
+        else if(type === 'pwd') payload.length = document.getElementById('inp-pwd-len').value;
+
+        document.getElementById('result-card').style.display = 'block';
+        document.getElementById('ai-result-box').style.display = 'none';
+        document.getElementById('btn-ai-trigger').style.display = 'none';
+        document.getElementById('final-result').innerText = "⏳ 正在连接云端处理中...";
+        
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data.error) {
+                log('ERROR', data.error);
+                document.getElementById('final-result').innerHTML = `<span style="color:red">${data.error}</span>`;
+            } else {
+                document.getElementById('final-result').innerText = data.result || JSON.stringify(data);
+                if(type === 'ocr') document.getElementById('btn-ai-trigger').style.display = 'block';
+                log('SUCCESS', `${type} 执行成功`);
+            }
+        } catch (e) { log('ERROR', '网络故障: ' + e.message); }
+    }
+
+    async function runAiCleanup() {
+        const content = document.getElementById('final-result').innerText;
+        const aiBox = document.getElementById('ai-result-box');
+        const aiContent = document.getElementById('ai-result-content');
+        const btn = document.getElementById('btn-ai-trigger');
+
+        btn.disabled = true; btn.innerText = "🧠 DeepSeek V3.2 正在重排逻辑...";
+        aiBox.style.display = 'block';
+        aiContent.innerText = "⏳ 正在识别语义并剔除水印，请稍候...";
+
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'ai_clean', content: content })
+            });
+            const data = await res.json();
+            aiContent.innerText = data.result || "AI 未能返回有效结果";
+            log('AI', '智能语义修复完成');
+        } catch (e) { aiContent.innerText = "AI 响应失败"; }
+        finally { btn.disabled = false; btn.innerText = "🚀 DeepSeek 智能语义修复与重排"; }
+    }
+</script>
+</body>
+</html>
+
