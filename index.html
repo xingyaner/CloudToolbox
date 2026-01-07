@@ -28,6 +28,7 @@
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .terminal-window { background: var(--terminal-bg); border-radius: 8px; padding: 15px; color: var(--terminal-text); font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; }
+        
         .copy-btn { float: right; padding: 4px 10px; font-size: 11px; background: #f0f0f0; color: #555; border-radius: 4px; margin-top: -4px; }
         .copy-btn:hover { background: #e0e0e0; color: var(--primary); }
         .result-label { font-size: 12px; font-weight: bold; color: #888; margin-bottom: 8px; display: block; }
@@ -36,6 +37,10 @@
         .btn-ai { background: var(--ai-gradient); margin-top: 15px; width: 100%; display: none; }
         .trans-box { border: 1px solid #28a745; background: #f6fff8 !important; display: none; margin-top: 15px; animation: fadeIn 0.5s; }
         .btn-trans { background: var(--trans-gradient); margin-top: 10px; width: 100%; display: none; }
+        
+        /* 🚀 粘贴提示样式 */
+        .paste-hint { font-size: 12px; color: #999; margin-bottom: 8px; display: block; }
+
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px);} to { opacity:1; transform:translateY(0);} }
     </style>
 </head>
@@ -43,7 +48,7 @@
     <div class="sidebar">
         <div class="logo"><div class="status-dot"></div> 云上工具箱</div>
         <div class="nav-item active" onclick="switchTab('dedup')">⚡ 文本智能去重</div>
-        <div class="nav-item" onclick="switchTab('ocr')">👁️ 图像文字识别</div>
+        <div class="nav-item" onclick="switchTab('ocr')">👁️ 图片文本识别</div>
         <div class="nav-item" onclick="switchTab('table')">📊 图片表格文本识别</div>
     </div>
 
@@ -60,9 +65,10 @@
         <!-- 图像识别 -->
         <div id="panel-ocr" class="panel">
             <div class="card">
-                <h2>☁️ 图像文字识别 (Cloud OCR)</h2>
-                <input type="file" id="inp-ocr-file" accept="image/*" onchange="previewImage(this, 'img-preview')">
-                <div style="text-align: center;"><img id="img-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border: 1px solid #eee;"></div>
+                <h2>☁️ 图片文本识别</h2>
+                <span class="paste-hint">提示：支持点击上传或直接 <b>Ctrl + V</b> 粘贴截图</span>
+                <input type="file" id="inp-ocr-file" accept="image/*" onchange="handleFileInput(this, 'img-preview')">
+                <div style="text-align: center;"><img id="img-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border: 1px solid #eee; border-radius: 4px;"></div>
                 <br><button onclick="runCloudTask('ocr')">开始识别文字</button>
             </div>
         </div>
@@ -70,10 +76,11 @@
         <!-- 表格识别 -->
         <div id="panel-table" class="panel">
             <div class="card">
-                <h2>📊 图片表格文本识别 (Table OCR)</h2>
+                <h2>📊 图片表格文本识别</h2>
                 <p style="color:#666; font-size:13px">识别图片中的表格并还原行列结构（Markdown/纯文本双版本）。</p>
-                <input type="file" id="inp-table-file" accept="image/*" onchange="previewImage(this, 'img-table-preview')">
-                <div style="text-align: center;"><img id="img-table-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border: 1px solid #eee;"></div>
+                <span class="paste-hint">提示：支持点击上传或直接 <b>Ctrl + V</b> 粘贴表格截图</span>
+                <input type="file" id="inp-table-file" accept="image/*" onchange="handleFileInput(this, 'img-table-preview')">
+                <div style="text-align: center;"><img id="img-table-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border: 1px solid #eee; border-radius: 4px;"></div>
                 <br><button onclick="runCloudTask('table')">开始提取表格</button>
             </div>
         </div>
@@ -113,13 +120,16 @@
 <script>
     const API_URL = "https://main-handler-toolbox-service-wfobwllmcq.cn-beijing.fcapp.run";
     let currentImageBase64 = "";
+    let activeTabId = 'dedup'; // 🚀 记录当前活动标签
 
     function switchTab(id) {
+        activeTabId = id;
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
         event.currentTarget.classList.add('active');
         document.getElementById('panel-' + id).classList.add('active');
         document.getElementById('result-card').style.display = 'none';
+        currentImageBase64 = ""; // 切换时清空缓存
     }
 
     function log(type, msg) {
@@ -139,25 +149,47 @@
         } catch (err) { log('ERROR', '复制失败'); }
     }
 
-    function previewImage(input, previewId) {
-        const file = input.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById(previewId).src = e.target.result;
-                document.getElementById(previewId).style.display = 'block';
-                currentImageBase64 = e.target.result.split(',')[1];
-                log('LOCAL', '图片读取成功');
-            };
-            reader.readAsDataURL(file);
-        }
+    // 🚀 统一图片处理逻辑
+    function processImageFile(file, previewId) {
+        if (!file || !file.type.match('image.*')) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = document.getElementById(previewId);
+            img.src = e.target.result;
+            img.style.display = 'block';
+            currentImageBase64 = e.target.result.split(',')[1];
+            log('LOCAL', '图片读取成功（来自' + (file.fromPaste ? '粘贴' : '上传') + '）');
+        };
+        reader.readAsDataURL(file);
     }
+
+    // 文件选择框触发
+    function handleFileInput(input, previewId) {
+        processImageFile(input.files[0], previewId);
+    }
+
+    // 🚀 监听粘贴事件
+    window.addEventListener('paste', (e) => {
+        // 只有在 OCR 或 Table 页面才响应粘贴
+        if (activeTabId !== 'ocr' && activeTabId !== 'table') return;
+
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                blob.fromPaste = true;
+                const targetPreviewId = (activeTabId === 'ocr') ? 'img-preview' : 'img-table-preview';
+                processImageFile(blob, targetPreviewId);
+                break;
+            }
+        }
+    });
 
     async function runCloudTask(type) {
         let payload = { action: type };
         if(type === 'dedup') payload.content = document.getElementById('inp-dedup').value;
         else if(type === 'ocr' || type === 'table') {
-            if(!currentImageBase64) return alert("请先上传图片");
+            if(!currentImageBase64) return alert("请先上传或按 Ctrl+V 粘贴图片");
             payload.image = currentImageBase64;
             if(type === 'table') payload.action = 'table_ocr';
         }
