@@ -8,8 +8,6 @@
         :root { 
             --primary: #007AFF; 
             --bg: #F0F2F5; 
-            --terminal-bg: #1E1E1E; 
-            --terminal-text: #00FF00; 
             --ai-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             --trans-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         }
@@ -18,6 +16,7 @@
         .logo { font-size: 18px; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
         .status-dot { width: 8px; height: 8px; background: #28a745; border-radius: 50%; box-shadow: 0 0 5px #28a745; }
         .nav-item { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; color: #666; transition: 0.2s; }
+        .nav-item:hover { background: #f5f5f5; color: var(--primary); }
         .nav-item.active { background: #E3F2FD; color: var(--primary); font-weight: bold; }
         .main { flex: 1; display: flex; flex-direction: column; padding: 30px; overflow-y: auto; }
         .panel { display: none; }
@@ -27,7 +26,6 @@
         button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        .terminal-window { background: var(--terminal-bg); border-radius: 8px; padding: 15px; color: var(--terminal-text); font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; }
         
         .copy-btn { float: right; padding: 4px 10px; font-size: 11px; background: #f0f0f0; color: #555; border-radius: 4px; margin-top: -4px; }
         .copy-btn:hover { background: #e0e0e0; color: var(--primary); }
@@ -37,8 +35,6 @@
         .btn-ai { background: var(--ai-gradient); margin-top: 15px; width: 100%; display: none; }
         .trans-box { border: 1px solid #28a745; background: #f6fff8 !important; display: none; margin-top: 15px; animation: fadeIn 0.5s; }
         .btn-trans { background: var(--trans-gradient); margin-top: 10px; width: 100%; display: none; }
-        
-        /* 🚀 粘贴提示样式 */
         .paste-hint { font-size: 12px; color: #999; margin-bottom: 8px; display: block; }
 
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px);} to { opacity:1; transform:translateY(0);} }
@@ -53,7 +49,6 @@
     </div>
 
     <div class="main">
-        <!-- 文本去重 -->
         <div id="panel-dedup" class="panel active">
             <div class="card">
                 <h2>☁️ 文本去重 (Deduplication)</h2>
@@ -62,7 +57,6 @@
             </div>
         </div>
 
-        <!-- 图像识别 -->
         <div id="panel-ocr" class="panel">
             <div class="card">
                 <h2>☁️ 图片文本识别</h2>
@@ -73,7 +67,6 @@
             </div>
         </div>
 
-        <!-- 表格识别 -->
         <div id="panel-table" class="panel">
             <div class="card">
                 <h2>📊 图片表格文本识别</h2>
@@ -85,42 +78,35 @@
             </div>
         </div>
 
-        <!-- 结果展示 -->
         <div class="card" id="result-card" style="display:none">
             <div style="border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
                 <h2 style="margin:0; font-size: 18px;">处理中心 (Processing Hub)</h2>
             </div>
-            
             <div id="md-result-area" style="margin-bottom: 15px;">
                 <span class="result-label" id="main-result-label">📄 识别结果 (Markdown) <button class="copy-btn" onclick="copyToClipboard('final-result', this)">📋 复制</button></span>
                 <div id="final-result" class="res-content" style="background:#f9f9f9;"></div>
             </div>
-
             <div id="plain-result-area" style="margin-bottom: 15px; display: none;">
                 <span class="result-label">📝 纯文本对齐版 <button class="copy-btn" onclick="copyToClipboard('plain-result', this)">📋 复制</button></span>
                 <div id="plain-result" class="res-content" style="background:#fff; border: 1px dashed #ccc; color: #444;"></div>
             </div>
-
             <button id="btn-ai-trigger" class="btn-ai" onclick="runAiCleanup()">✨ AI 智能重排</button>
             <div id="ai-result-box" class="ai-box" style="padding:15px; border-radius:6px;">
                 <span class="result-label" style="color:#764ba2">🧠 AI 智能重排结果 <button class="copy-btn" onclick="copyToClipboard('ai-result-content', this)">📋 复制</button></span>
                 <div id="ai-result-content" class="res-content" style="color: #333; border: none; padding: 0;"></div>
             </div>
-
             <button id="btn-trans-trigger" class="btn-trans" onclick="runAiTranslate()">🏮 中外文互译</button>
             <div id="trans-result-box" class="trans-box" style="padding:15px; border-radius:6px;">
                 <span class="result-label" style="color:#28a745">🏮 翻译结果 <button class="copy-btn" onclick="copyToClipboard('trans-result-content', this)">📋 复制</button></span>
                 <div id="trans-result-content" class="res-content" style="color: #333; border: none; padding: 0;"></div>
             </div>
         </div>
-
-        <div class="terminal-window" id="terminal"><div>[System] 控制台就绪...</div></div>
     </div>
 
 <script>
     const API_URL = "https://main-handler-toolbox-service-wfobwllmcq.cn-beijing.fcapp.run";
     let currentImageBase64 = "";
-    let activeTabId = 'dedup'; // 🚀 记录当前活动标签
+    let activeTabId = 'dedup'; 
 
     function switchTab(id) {
         activeTabId = id;
@@ -128,14 +114,17 @@
         document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
         event.currentTarget.classList.add('active');
         document.getElementById('panel-' + id).classList.add('active');
+        
+        // 🚀 刷新逻辑：清空所有状态
         document.getElementById('result-card').style.display = 'none';
-        currentImageBase64 = ""; // 切换时清空缓存
-    }
-
-    function log(type, msg) {
-        const term = document.getElementById('terminal');
-        term.innerHTML += `<div><span style="color:#888">[${new Date().toLocaleTimeString()}]</span> <span style="color:#4facfe">[${type}]</span> ${msg}</div>`;
-        term.scrollTop = term.scrollHeight;
+        currentImageBase64 = ""; 
+        document.getElementById('inp-dedup').value = "";
+        ['img-preview', 'img-table-preview'].forEach(pId => {
+            const img = document.getElementById(pId);
+            img.src = ""; img.style.display = 'none';
+        });
+        document.getElementById('inp-ocr-file').value = "";
+        document.getElementById('inp-table-file').value = "";
     }
 
     async function copyToClipboard(elementId, btn) {
@@ -145,39 +134,28 @@
             await navigator.clipboard.writeText(text);
             const old = btn.innerHTML; btn.innerHTML = "✅ 已复制"; btn.style.color = "#28a745";
             setTimeout(() => { btn.innerHTML = old; btn.style.color = "#555"; }, 2000);
-            log('SYSTEM', '文本已复制');
-        } catch (err) { log('ERROR', '复制失败'); }
+        } catch (err) { console.error('复制失败'); }
     }
 
-    // 🚀 统一图片处理逻辑
     function processImageFile(file, previewId) {
         if (!file || !file.type.match('image.*')) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = document.getElementById(previewId);
-            img.src = e.target.result;
-            img.style.display = 'block';
+            img.src = e.target.result; img.style.display = 'block';
             currentImageBase64 = e.target.result.split(',')[1];
-            log('LOCAL', '图片读取成功（来自' + (file.fromPaste ? '粘贴' : '上传') + '）');
         };
         reader.readAsDataURL(file);
     }
 
-    // 文件选择框触发
-    function handleFileInput(input, previewId) {
-        processImageFile(input.files[0], previewId);
-    }
+    function handleFileInput(input, previewId) { processImageFile(input.files[0], previewId); }
 
-    // 🚀 监听粘贴事件
     window.addEventListener('paste', (e) => {
-        // 只有在 OCR 或 Table 页面才响应粘贴
         if (activeTabId !== 'ocr' && activeTabId !== 'table') return;
-
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
                 const blob = items[i].getAsFile();
-                blob.fromPaste = true;
                 const targetPreviewId = (activeTabId === 'ocr') ? 'img-preview' : 'img-table-preview';
                 processImageFile(blob, targetPreviewId);
                 break;
@@ -201,24 +179,19 @@
         document.getElementById('btn-ai-trigger').style.display = 'none';
         document.getElementById('btn-trans-trigger').style.display = 'none';
         document.getElementById('final-result').innerText = "⏳ 正在处理中...";
-        
         document.getElementById('main-result-label').firstChild.textContent = (type === 'table') ? "📊 识别结果 (Markdown) " : "📄 原始识别结果 ";
 
         try {
             const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
             const data = await res.json();
-            document.getElementById('final-result').innerText = data.result || data.error;
-            
+            const resultText = data.result !== undefined ? data.result : (data.error || "未知系统错误");
+            document.getElementById('final-result').innerText = resultText;
             if(type === 'table' && data.plain_text) {
                 document.getElementById('plain-result-area').style.display = 'block';
                 document.getElementById('plain-result').innerText = data.plain_text;
-                log('AI', '表格已通过 DeepSeek V3.2 逻辑清洗并对齐');
-            } else {
-                log('SUCCESS', type + ' 执行成功');
             }
-
             if(type === 'ocr') document.getElementById('btn-ai-trigger').style.display = 'block';
-        } catch (e) { log('ERROR', '请求失败'); }
+        } catch (e) { document.getElementById('final-result').innerText = "❌ 请求失败: " + e.message; }
     }
 
     async function runAiCleanup() {
@@ -229,10 +202,9 @@
         try {
             const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'ai_clean', content: document.getElementById('final-result').innerText }) });
             const data = await res.json();
-            document.getElementById('ai-result-content').innerText = data.result || data.error;
+            document.getElementById('ai-result-content').innerText = data.result || data.error || "AI 处理异常";
             document.getElementById('btn-trans-trigger').style.display = 'block';
-            log('AI', '智能重排完成');
-        } catch (e) { log('ERROR', 'AI重排失败'); }
+        } catch (e) { document.getElementById('ai-result-content').innerText = "AI重排失败"; }
         finally { btn.disabled = false; btn.innerText = "✨ AI 智能重排"; }
     }
 
@@ -244,10 +216,9 @@
         try {
             const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'ai_translate', content: document.getElementById('ai-result-content').innerText }) });
             const data = await res.json();
-            document.getElementById('trans-result-content').innerText = data.result || data.error;
-            log('AI', '翻译完成');
-        } catch (e) { log('ERROR', '翻译失败'); }
-        finally { btn.disabled = false; btn.innerText = "🏮 翻译成中文"; }
+            document.getElementById('trans-result-content').innerText = data.result || data.error || "翻译异常";
+        } catch (e) { document.getElementById('trans-result-content').innerText = "翻译失败"; }
+        finally { btn.disabled = false; btn.innerText = "🏮 中外文互译"; }
     }
 </script>
 </body>
