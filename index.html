@@ -2,41 +2,43 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serverless Cloud Console</title>
+    <title>Cloud Toolbox Pro - Master Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { 
-            --primary: #007AFF; 
-            --bg: #F0F2F5; 
-            --ai-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            --trans-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        }
+        /* 样式完全保留母本 */
+        :root { --primary: #007AFF; --bg: #F0F2F5; --terminal-bg: #1E1E1E; --terminal-text: #00FF00; --ai-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --trans-gradient: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
         .sidebar { width: 240px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; padding: 20px; z-index: 10; }
         .logo { font-size: 18px; font-weight: 800; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
         .status-dot { width: 8px; height: 8px; background: #28a745; border-radius: 50%; box-shadow: 0 0 5px #28a745; }
-        .nav-item { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; color: #666; transition: 0.2s; }
+        .nav-item { padding: 12px 15px; margin-bottom: 5px; border-radius: 8px; cursor: pointer; color: #666; transition: 0.2s; font-size: 14px; }
         .nav-item:hover { background: #f5f5f5; color: var(--primary); }
         .nav-item.active { background: #E3F2FD; color: var(--primary); font-weight: bold; }
         .main { flex: 1; display: flex; flex-direction: column; padding: 30px; overflow-y: auto; }
-        .panel { display: none; }
-        .panel.active { display: block; animation: fadeIn 0.3s; }
+        .panel { display: none; animation: fadeIn 0.3s; }
+        .panel.active { display: block; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
-        textarea, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; margin: 10px 0; font-family: monospace; }
+        textarea, input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; margin: 10px 0; font-family: monospace; font-size: 14px; display: block; }
+	textarea { resize: vertical; min-height: 100px; }
+	input[type="text"] { height: 45px; }
         button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .copy-btn { float: right; padding: 4px 10px; font-size: 11px; background: #f0f0f0; color: #555; border-radius: 4px; margin-top: -4px; }
-        .copy-btn:hover { background: #e0e0e0; color: var(--primary); }
-        .result-label { font-size: 12px; font-weight: bold; color: #888; margin-bottom: 8px; display: block; }
-        .res-content { padding:15px; border-radius:6px; white-space:pre-wrap; font-family: "SF Mono", "Monaco", "Inconsolata", monospace !important; font-size: 13px; border: 1px solid #eee; overflow-x: auto; }
-        .ai-box { border: 1px solid #764ba2; background: #fdfaff !important; display: none; margin-top: 15px; animation: fadeIn 0.5s; }
+        .copy-btn { float: right; padding: 4px 10px; font-size: 11px; background: #f0f0f0; color: #555; border-radius: 4px; margin-top: -4px; cursor: pointer; }
+        .res-content { padding:15px; border-radius:6px; white-space:pre-wrap; font-family: monospace; font-size: 13px; border: 1px solid #eee; overflow-x: auto; background: #f9f9f9; min-height: 20px; }
+        .ai-box { border: 1px solid #764ba2; background: #fdfaff !important; display: none; margin-top: 15px; padding: 15px; border-radius: 6px; }
         .btn-ai { background: var(--ai-gradient); margin-top: 15px; width: 100%; display: none; }
-        .trans-box { border: 1px solid #28a745; background: #f6fff8 !important; display: none; margin-top: 15px; animation: fadeIn 0.5s; }
         .btn-trans { background: var(--trans-gradient); margin-top: 10px; width: 100%; display: none; }
-        .paste-hint { font-size: 12px; color: #999; margin-bottom: 8px; display: block; }
-
+	.terminal-window { display: none; background: var(--terminal-bg); color: var(--terminal-text); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; height: 120px; overflow-y: auto; margin-top: 10px; }
+        
+        /* 补充 Tool 2 的审计布局样式，不影响原有样式 */
+        .audit-container { display: flex; gap: 20px; height: 400px; }
+        .code-editor { flex: 1; display: flex; flex-direction: column; }
+        .audit-result { flex: 1; background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 15px; overflow-y: auto; font-size: 13px; }
+	.image-upload-area { border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; background: #fafafa; cursor: pointer; transition: 0.3s; margin-bottom: 15px; }
+        .image-upload-area:hover { border-color: var(--primary); background: #f0f7ff; }
+        .risk-level { padding: 4px 12px; border-radius: 4px; font-weight: 600; display: inline-block; margin: 5px 0; }
+        .risk-safe { background: #e6fffa; color: #2c7a7b; }
+        .risk-high { background: #fff1f0; color: #cf1322; }
+        
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px);} to { opacity:1; transform:translateY(0);} }
     </style>
 </head>
@@ -45,68 +47,233 @@
         <div class="logo"><div class="status-dot"></div> 云上工具箱</div>
         <div class="nav-item active" onclick="switchTab('dedup')">⚡ 文本智能去重</div>
         <div class="nav-item" onclick="switchTab('ocr')">👁️ 图片文本识别</div>
-        <div class="nav-item" onclick="switchTab('table')">📊 图片表格文本识别</div>
+        <div class="nav-item" onclick="switchTab('table')">📊 图片表格识别</div>
+        <div class="nav-item" onclick="switchTab('qr')">📲 云端二维码</div>
+        <div class="nav-item" onclick="switchTab('pwd')">🔑 安全密码生成</div>
+        <div class="nav-item" onclick="switchTab('phy')">⚛️ 物理仿真模拟</div>
+        <div class="nav-item" onclick="switchTab('audit')">🧠 AI 代码审计</div>
+        <div class="nav-item" onclick="switchTab('base64')">🔣 Base64 转换</div>
+        <div class="nav-item" onclick="switchTab('ua')">📲 设备分析</div>
+        <div class="nav-item" onclick="switchTab('site')">💓 网站心跳</div>
+        <div class="nav-item" onclick="switchTab('burn')">🔥 阅后即焚</div>
+	<div class="nav-item" onclick="switchTab('safeimg')">🛡️ 图片安全识别</div>
     </div>
+
+
 
     <div class="main">
-        <div id="panel-dedup" class="panel active">
-            <div class="card">
-                <h2>☁️ 文本去重 (Deduplication)</h2>
-                <textarea id="inp-dedup" rows="6" placeholder="输入重复列表..."></textarea>
-                <button onclick="runCloudTask('dedup')">执行云端计算</button>
-            </div>
-        </div>
+        <!-- 1. 文本去重 -->
+        <div id="panel-dedup" class="panel active"><div class="card">
+            <h2>☁️ 文本去重 (Deduplication)</h2>
+            <textarea id="inp-dedup" rows="6" placeholder="输入重复列表..."></textarea>
+            <button onclick="runTask('dedup')">执行云端计算</button>
+        </div></div>
 
-        <div id="panel-ocr" class="panel">
-            <div class="card">
-                <h2>☁️ 图片文本识别</h2>
-                <span class="paste-hint">提示：支持点击上传或直接 <b>Ctrl + V</b> 粘贴截图</span>
-                <input type="file" id="inp-ocr-file" accept="image/*" onchange="handleFileInput(this, 'img-preview')">
-                <div style="text-align: center;"><img id="img-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border: 1px solid #eee; border-radius: 4px;"></div>
-                <br><button onclick="runCloudTask('ocr')">开始识别文字</button>
-            </div>
-        </div>
+        <!-- 2. 图片文本识别 -->
+        <div id="panel-ocr" class="panel"><div class="card">
+            <h2>☁️ 图片文本识别</h2>
+            <p style="color: #666; font-size: 13px;">提示：支持点击上传或直接 Ctrl + V 粘贴截图</p>
+            <input type="file" id="inp-ocr-file" accept="image/*" onchange="handleFileInput(this, 'img-preview')">
+            <div style="text-align: center;"><img id="img-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border-radius: 4px;"></div>
+            <button onclick="runTask('ocr')" style="margin-top:10px">开始识别文字</button>
+        </div></div>
 
-        <div id="panel-table" class="panel">
-            <div class="card">
-                <h2>📊 图片表格文本识别</h2>
-                <p style="color:#666; font-size:13px">识别图片中的表格并还原行列结构（Markdown/纯文本双版本）。</p>
-                <span class="paste-hint">提示：支持点击上传或直接 <b>Ctrl + V</b> 粘贴表格截图</span>
-                <input type="file" id="inp-table-file" accept="image/*" onchange="handleFileInput(this, 'img-table-preview')">
-                <div style="text-align: center;"><img id="img-table-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border: 1px solid #eee; border-radius: 4px;"></div>
-                <br><button onclick="runCloudTask('table')">开始提取表格</button>
-            </div>
-        </div>
+        <!-- 3. 图片表格识别 -->
+        <div id="panel-table" class="panel"><div class="card">
+            <h2>📊 图片表格文本识别</h2>
+            <p style="color: #666; font-size: 13px;">识别图片中的表格并还原行列结构（Markdown/纯文本双版本）。<br>提示：支持点击上传或直接 Ctrl + V 粘贴表格截图</p>
+            <input type="file" id="inp-table-file" accept="image/*" onchange="handleFileInput(this, 'img-table-preview')">
+            <div style="text-align: center;"><img id="img-table-preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border-radius: 4px;"></div>
+            <button onclick="runTask('table_ocr')" style="margin-top:10px">开始提取表格</button>
+        </div></div>
 
+        <!-- 4. 云端二维码 -->
+        <div id="panel-qr" class="panel"><div class="card">
+            <h2>☁️ 矢量二维码 (Cloud QR Gen)</h2>
+            <input type="text" id="inp-qr" placeholder="输入网址或文字...">
+            <button onclick="runTask('qr')">开始渲染</button>
+        </div></div>
+
+        <!-- 5. 密码生成 -->
+	    <div id="panel-pwd" class="panel"><div class="card">
+            <h2>☁️ 熵增密码 (Cloud Secrets)</h2>
+            <input type="range" id="pwd-len" min="8" max="64" value="16" oninput="document.getElementById('pv').innerText=this.value">
+            <div style="margin-bottom: 10px;">长度: <span id="pv">16</span></div>
+            <button onclick="runTask('password')">计算密码</button>
+        </div></div>
+
+        <!-- 6. 物理仿真 -->
+        <div id="panel-phy" class="panel"><div class="card">
+            <h2>⚛️ 2D 波动方程数值求解 (FDM Solver)</h2>
+            <p style="color:#666; font-size:13px;">云端将构建 100x100 网格，利用 Numpy 求解偏微分方程：∂²u/∂t² = c²∇²u</p>
+            <label>干扰源位置 (X, Y):</label>
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="phy-x" value="0.5" step="0.1" placeholder="X (0-1)">
+                <input type="number" id="phy-y" value="0.5" step="0.1" placeholder="Y (0-1)">
+            </div>
+            <label>演化步数: <span id="step-val">50</span></label>
+            <input type="range" id="phy-steps" min="10" max="150" value="50" oninput="document.getElementById('step-val').innerText=this.value">
+            <button onclick="runTask('phy_wave')">🚀 启动云端物理引擎</button>
+        </div></div>
+
+        <!-- 7. AI 审计 -->
+        <div id="panel-audit" class="panel"><div class="card">
+            <h2>🧠 AI 智能代码审计 </h2>
+            <select id="audit-lang"><option>Python</option><option>Javascript</option><option>Java</option><option>C++</option></select>
+            <div class="audit-container">
+                <div class="code-editor">
+                    <label>📝 源代码输入:</label>
+                    <textarea id="audit-code" style="height:100%" placeholder="// 请在此处粘贴需要审查的代码..."></textarea>
+                </div>
+                <div class="audit-result" id="audit-output">
+                    <h3>代码审计报告</h3>
+                    <div style="color:#999; margin-top:20px;">等待提交...<br>AI 架构师将从以下维度进行分析：
+                        <ul><li>逻辑漏洞与 Bug</li><li>性能瓶颈优化</li><li>安全风险检测</li></ul>
+                    </div>
+                </div>
+            </div>
+            <button onclick="runTask('audit')" style="margin-top:10px">🚀 提交给 AI 架构师审查</button>
+        </div></div>
+	        <!-- 8. Base64 转换 (补全) -->
+        <div id="panel-base64" class="panel"><div class="card">
+            <h2>🔣 Base64 转换</h2>
+            <select id="b64-mode"><option value="encode">编码</option><option value="decode">解码</option></select>
+            <textarea id="b64-text" rows="4" placeholder="输入内容..."></textarea>
+            <button onclick="runTask('base64')">转换</button>
+        </div></div>
+
+	<div id="panel-ua" class="panel"><div class="card">
+            <h2>📲 访客设备指纹分析</h2>
+            <p style="color:#666; font-size:13px;">后端解析 HTTP 请求头中的 User-Agent 字段，识别您的操作系统与环境。</p>
+            <button onclick="runTask('ua')">️‍♂️ 分析我的设备</button>
+            <div id="ua-result-box" style="margin-top:20px; display:none;">
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:10px;">
+                    <strong>操作系统:</strong> <span id="res-os" style="color:var(--primary)">-</span>
+                </div>
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; word-break:break-all;">
+                    <strong>原始 User-Agent:</strong><br>
+                    <code id="res-raw" style="color:#666; font-size:12px;">-</code>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- 8.6 网站心跳检测 (新增) -->
+        <div id="panel-site" class="panel"><div class="card">
+            <h2>💓 网站存活与延迟检测</h2>
+            <p style="color:#666; font-size:13px;">由云端节点发起探测，真实反映服务器连通性。</p>
+            <input type="text" id="site-url" placeholder="输入网址，例如 www.baidu.com">
+            <button onclick="runTask('check_site')">💓 开始诊断</button>
+            <div id="site-result-box" style="margin-top:20px; display:none;"></div>
+        </div></div>
+
+
+	<!-- 10. 阅后即焚 (SecretNote) -->
+        <div id="panel-burn" class="panel"><div class="card">
+            <h2>🔥 阅后即焚 (SecretNote)</h2>
+            <p style="color:#666; font-size:13px;">生成的链接只能访问一次，读取后服务器端数据立即永久销毁。</p>
+
+            <label style="font-size:12px; color:#888;">输入秘密内容 (例如: helloworld):</label>
+            <textarea id="burn-text" placeholder="在此输入秘密..."></textarea>
+            <button onclick="runTask('save_note')">生成一次性链接</button>
+
+            <div id="burn-link-area" style="display:none; margin-top:15px; padding:15px; background:#f6ffed; border:1px solid #b7eb8f; border-radius:6px;">
+                <strong style="color:#52c41a;">秘密链接已生成:</strong>
+                <div id="burn-res-id" style="font-family:monospace; font-weight:bold; margin:10px 0; padding:10px; background:#fff; border:1px dashed #ccc;"></div>
+                <p style="font-size:12px; color:#666;">将此 ID 发给对方，一旦查看将立即失效。</p>
+            </div>
+
+            <hr style="margin:25px 0; border:0; border-top:1px dashed #eee;">
+
+            <h3>查看秘密</h3>
+            <label style="font-size:12px; color:#888;">输入秘密 ID (例如: 8486ed0fe7):</label>
+            <input type="text" id="burn-id" placeholder="在此输入 ID">
+            <button onclick="runTask('read_note')" style="background:#ff4d4f">查看并销毁</button>
+
+            <div id="burn-read-result" style="display:none; margin-top:15px; padding:15px; background:#fff1f0; border:1px solid #ffccc7; border-radius:6px;">
+                <strong style="color:#cf1322;">内容已销毁，无法再次访问:</strong>
+                <pre id="burn-read-content" style="white-space:pre-wrap; margin-top:10px; font-weight:bold;"></pre>
+            </div>
+        </div></div>
+
+	<!-- 主区域新增面板 -->
+        <div id="panel-safeimg" class="panel"><div class="card">
+            <h2>🛡️ 图片安全识别</h2>
+            <div class="image-upload-area" onclick="document.getElementById('safe-file').click()">
+            <div style="font-size:30px;">📸</div>
+            <p>点击或拖拽上传图片进行合规检测</p>
+            <input type="file" id="safe-file" style="display:none" onchange="handleSafeUpload(this)">
+        </div>
+        <div id="safe-preview-box" style="display:none; text-align:center;">
+            <img id="safe-preview" style="max-width:100%; max-height:200px; border-radius:8px;">
+            <button onclick="runTask('check_image')" style="margin-top:10px; width:100%;">🔍 开始安全扫描</button>
+        </div>
+        <div id="safe-result-box" style="display:none; margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px;"></div>
+        </div></div>
+
+
+        <!-- 结果展示面板 (必须存在，否则 JS 会崩溃) -->
         <div class="card" id="result-card" style="display:none">
-            <div style="border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
-                <h2 style="margin:0; font-size: 18px;">处理中心 (Processing Hub)</h2>
+            <h2 style="font-size: 18px;">处理中心</h2>
+            <div id="md-result-area">
+                <span style="font-size:12px; color:#888">📄 识别结果 <button class="copy-btn" onclick="copyText('final-result')">复制</button></span>
+                <div id="final-result" class="res-content"></div>
             </div>
-            <div id="md-result-area" style="margin-bottom: 15px;">
-                <span class="result-label" id="main-result-label">📄 识别结果 (Markdown) <button class="copy-btn" onclick="copyToClipboard('final-result', this)">📋 复制</button></span>
-                <div id="final-result" class="res-content" style="background:#f9f9f9;"></div>
-            </div>
-            <div id="plain-result-area" style="margin-bottom: 15px; display: none;">
-                <span class="result-label">📝 纯文本对齐版 <button class="copy-btn" onclick="copyToClipboard('plain-result', this)">📋 复制</button></span>
-                <div id="plain-result" class="res-content" style="background:#fff; border: 1px dashed #ccc; color: #444;"></div>
+            <div id="plain-result-area" style="display:none; margin-top:15px">
+                <span style="font-size:12px; color:#888">📝 纯文本对齐 <button class="copy-btn" onclick="copyText('plain-result')">复制</button></span>
+                <div id="plain-result" class="res-content"></div>
             </div>
             <button id="btn-ai-trigger" class="btn-ai" onclick="runAiCleanup()">✨ AI 智能重排</button>
-            <div id="ai-result-box" class="ai-box" style="padding:15px; border-radius:6px;">
-                <span class="result-label" style="color:#764ba2">🧠 AI 智能重排结果 <button class="copy-btn" onclick="copyToClipboard('ai-result-content', this)">📋 复制</button></span>
-                <div id="ai-result-content" class="res-content" style="color: #333; border: none; padding: 0;"></div>
+            <div id="ai-result-box" class="ai-box">
+                <span style="font-size:12px; color:#764ba2">🧠 AI 重排结果 <button class="copy-btn" onclick="copyText('ai-result-content')">复制</button></span>
+                <div id="ai-result-content" class="res-content"></div>
             </div>
             <button id="btn-trans-trigger" class="btn-trans" onclick="runAiTranslate()">🏮 中外文互译</button>
-            <div id="trans-result-box" class="trans-box" style="padding:15px; border-radius:6px;">
-                <span class="result-label" style="color:#28a745">🏮 翻译结果 <button class="copy-btn" onclick="copyToClipboard('trans-result-content', this)">📋 复制</button></span>
-                <div id="trans-result-content" class="res-content" style="color: #333; border: none; padding: 0;"></div>
+            <div id="trans-result-box" class="ai-box" style="border-color:#28a745">
+                <span style="font-size:12px; color:#28a745">🏮 翻译结果 <button class="copy-btn" onclick="copyText('trans-result-content')">复制</button></span>
+                <div id="trans-result-content" class="res-content"></div>
             </div>
         </div>
-    </div>
+
+        <!-- 终端窗口 (必须存在) -->
+        <div class="terminal-window" id="terminal"><div>[System] 初始化完成...</div></div>
+    </div> <!-- 结束 main -->
 
 <script>
     const API_URL = "https://main-handler-toolbox-service-wfobwllmcq.cn-beijing.fcapp.run";
     let currentImageBase64 = "";
-    let activeTabId = 'dedup'; 
+    let activeTabId = 'dedup';
+
+
+
+    window.addEventListener('paste', (e) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    // 根据当前面板决定预览位置
+                    let previewId = '';
+                    if (activeTabId === 'ocr') previewId = 'img-preview';
+                    else if (activeTabId === 'table') previewId = 'img-table-preview';
+                    else if (activeTabId === 'safeimg') {
+                        previewId = 'safe-preview';
+                        document.getElementById('safe-preview-box').style.display = 'block';
+                    }
+
+                    if (previewId) {
+                        const img = document.getElementById(previewId);
+                        img.src = e.target.result; 
+                        img.style.display = 'block';
+                        currentImageBase64 = e.target.result.split(',')[1];
+                        log('INFO', '已从剪贴板读取图片');
+                    }
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
+
 
     function switchTab(id) {
         activeTabId = id;
@@ -115,110 +282,236 @@
         event.currentTarget.classList.add('active');
         document.getElementById('panel-' + id).classList.add('active');
         
-        // 🚀 刷新逻辑：清空所有状态
+        // 1. 隐藏所有结果面板、AI 增强框、以及特定工具的反馈区域
         document.getElementById('result-card').style.display = 'none';
-        currentImageBase64 = ""; 
-        document.getElementById('inp-dedup').value = "";
-        ['img-preview', 'img-table-preview'].forEach(pId => {
-            const img = document.getElementById(pId);
-            img.src = ""; img.style.display = 'none';
+        document.getElementById('plain-result-area').style.display = 'none'; 
+        document.querySelectorAll('.ai-box, .btn-ai, .btn-trans, #safe-result-box, #site-result-box, #burn-link-area, #burn-read-result').forEach(el => el.style.display = 'none');
+        
+        // 2. 清空结果文本
+        document.getElementById('final-result').innerText = "";
+        document.getElementById('plain-result').innerText = "";
+        
+        // 3. 清空所有输入数据
+        document.querySelectorAll('textarea').forEach(t => t.value = "");
+        document.querySelectorAll('input').forEach(i => {
+            if (i.type === 'text' || i.type === 'file') i.value = "";
         });
-        document.getElementById('inp-ocr-file').value = "";
-        document.getElementById('inp-table-file').value = "";
+        
+        // 4. 重置所有图片预览和 Base64 缓存
+        currentImageBase64 = "";
+        document.querySelectorAll('img[id$="preview"]').forEach(img => {
+            img.src = "";
+            img.style.display = 'none';
+        });
+        document.getElementById('safe-preview-box').style.display = 'none';
+
+        // 5. 重置 AI 审计报告
+        const auditOut = document.getElementById('audit-output');
+        if(auditOut) auditOut.innerHTML = `<h3>代码审计报告</h3><div style="color:#999; margin-top:20px;">等待提交...</div>`;
+        
+        log('INFO', '切换至 ' + id + ' 面板并重置状态');
     }
 
-    async function copyToClipboard(elementId, btn) {
-        const text = document.getElementById(elementId).innerText;
-        if (!text || text.startsWith("⏳")) return;
-        try {
-            await navigator.clipboard.writeText(text);
-            const old = btn.innerHTML; btn.innerHTML = "✅ 已复制"; btn.style.color = "#28a745";
-            setTimeout(() => { btn.innerHTML = old; btn.style.color = "#555"; }, 2000);
-        } catch (err) { console.error('复制失败'); }
-    }
 
-    function processImageFile(file, previewId) {
-        if (!file || !file.type.match('image.*')) return;
+    function handleFileInput(input, previewId) {
+        const file = input.files[0];
         const reader = new FileReader();
         reader.onload = (e) => {
-            const img = document.getElementById(previewId);
-            img.src = e.target.result; img.style.display = 'block';
+            document.getElementById(previewId).src = e.target.result;
+            document.getElementById(previewId).style.display = 'block';
             currentImageBase64 = e.target.result.split(',')[1];
         };
         reader.readAsDataURL(file);
     }
 
-    function handleFileInput(input, previewId) { processImageFile(input.files[0], previewId); }
+    function log(type, msg) {
+        const t = document.getElementById('terminal');
+        t.innerHTML += `<div>[${type}] ${msg}</div>`;
+        t.scrollTop = t.scrollHeight;
+    }
 
-    window.addEventListener('paste', (e) => {
-        if (activeTabId !== 'ocr' && activeTabId !== 'table') return;
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const blob = items[i].getAsFile();
-                const targetPreviewId = (activeTabId === 'ocr') ? 'img-preview' : 'img-table-preview';
-                processImageFile(blob, targetPreviewId);
-                break;
-            }
-        }
-    });
+    // 替换原本的 handleSafeUpload 函数
+    function handleSafeUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('safe-preview');
+            preview.src = e.target.result;
+            preview.style.display = 'block'; // 强制显示图片
+            document.getElementById('safe-preview-box').style.display = 'block'; // 显示预览容器
+            currentImageBase64 = e.target.result.split(',')[1];
+            log('INFO', '安全识别图片已载入');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 
-    async function runCloudTask(type) {
+
+
+    async function runTask(type) {
+        log('TASK', '启动 ' + type);
+        
+        // --- 0. 清除上一次任务的残留 UI (AI 增强按钮与结果框) ---
+        document.querySelectorAll('.btn-ai, .btn-trans, .ai-box').forEach(el => el.style.display = 'none');
+        
         let payload = { action: type };
+        
+        // --- 1. 输入参数获取逻辑 ---
         if(type === 'dedup') payload.content = document.getElementById('inp-dedup').value;
-        else if(type === 'ocr' || type === 'table') {
-            if(!currentImageBase64) return alert("请先上传或按 Ctrl+V 粘贴图片");
+        else if(type === 'ocr' || type === 'table_ocr') payload.image = currentImageBase64;
+        else if(type === 'qr') payload.text = document.getElementById('inp-qr').value;
+        else if(type === 'password') payload.length = document.getElementById('pwd-len').value;
+        else if(type === 'phy_wave') { 
+            payload.cx = document.getElementById('phy-x').value; 
+            payload.cy = document.getElementById('phy-y').value;
+            payload.steps = document.getElementById('phy-steps').value;
+        }
+        else if(type === 'audit') { 
+            payload.code = document.getElementById('audit-code').value; 
+            payload.lang = document.getElementById('audit-lang').value;
+            document.getElementById('audit-output').innerText = "⏳ AI 正在审计...";
+        }
+        else if(type === 'base64') {
+            payload.mode = document.getElementById('b64-mode').value;
+            payload.text = document.getElementById('b64-text').value;
+        }
+        else if(type === 'check_site') {
+            payload.url = document.getElementById('site-url').value;
+        }
+        else if(type === 'save_note') payload.text = document.getElementById('burn-text').value;
+        else if(type === 'read_note') payload.id = document.getElementById('burn-id').value;
+        else if(type === 'check_image' ) {
             payload.image = currentImageBase64;
-            if(type === 'table') payload.action = 'table_ocr';
         }
 
-        document.getElementById('result-card').style.display = 'block';
-        document.getElementById('plain-result-area').style.display = 'none';
-        document.getElementById('ai-result-box').style.display = 'none';
-        document.getElementById('trans-result-box').style.display = 'none';
-        document.getElementById('btn-ai-trigger').style.display = 'none';
-        document.getElementById('btn-trans-trigger').style.display = 'none';
-        document.getElementById('final-result').innerText = "⏳ 正在处理中...";
-        document.getElementById('main-result-label').firstChild.textContent = (type === 'table') ? "📊 识别结果 (Markdown) " : "📄 原始识别结果 ";
+        // --- 2. 界面预处理 ---
+        // 非审计/设备分析/网站检测任务显示通用结果面板
+        if(type !== 'audit' && type !== 'ua' && type !== 'check_site') {
+            document.getElementById('result-card').style.display = 'block';
+            document.getElementById('final-result').innerText = "⏳ 正在处理中...";
+            document.getElementById('plain-result-area').style.display = 'none';
+        }
 
         try {
-            const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const res = await fetch(API_URL, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload) 
+            });
             const data = await res.json();
-            const resultText = data.result !== undefined ? data.result : (data.error || "未知系统错误");
-            document.getElementById('final-result').innerText = resultText;
-            if(type === 'table' && data.plain_text) {
-                document.getElementById('plain-result-area').style.display = 'block';
-                document.getElementById('plain-result').innerText = data.plain_text;
+            
+            if(data.error) throw new Error(data.error);
+
+            // --- 3. 结果渲染逻辑 ---
+            if(type === 'audit') {
+                document.getElementById('audit-output').innerHTML = marked.parse(data.data);
+            } 
+            else if(type === 'ua') {
+                document.getElementById('ua-result-box').style.display = 'block';
+                document.getElementById('res-os').innerText = data.os_guess;
+                document.getElementById('res-raw').innerText = data.user_agent;
+            } 
+            else if(type === 'check_site') {
+                const resDiv = document.getElementById('site-result-box');
+                resDiv.style.display = 'block';
+                const isUp = data.status === 'UP';
+                const color = isUp ? '#e6fffa' : '#fff5f5';
+                const textColor = isUp ? '#2c7a7b' : '#c53030';
+                resDiv.innerHTML = `
+                    <div style="background:${color}; color:${textColor}; padding:20px; border-radius:8px; border:1px solid ${textColor}40;">
+                        <h3 style="margin:0 0 10px 0;">${isUp ? '✅' : '❌'} ${data.status}</h3>
+                        <div style="font-size:13px;"><strong>目标:</strong> ${data.url}</div>
+                        <div style="font-size:13px;"><strong>状态码:</strong> ${data.code}</div>
+                        <div style="font-size:13px;"><strong>延迟:</strong> ${data.latency_ms || '-'} ms</div>
+                        ${data.error ? `<div style="margin-top:10px; font-size:11px; opacity:0.8;">原因: ${data.error}</div>` : ''}
+                    </div>`;
             }
-            if(type === 'ocr') document.getElementById('btn-ai-trigger').style.display = 'block';
-        } catch (e) { document.getElementById('final-result').innerText = "❌ 请求失败: " + e.message; }
+
+            else if(type === 'check_image') {
+                const box = document.getElementById('safe-result-box'); 
+                box.style.display = 'block';
+                const levelClass = data.risk_level === '安全' ? 'risk-safe' : 'risk-high';
+                box.innerHTML = `
+                    <h3 style="margin:0 0 10px 0; font-size:16px;">🛡️ 安全检测报告</h3>
+                    <div style="margin-bottom:8px;"><strong>风险等级：</strong> <span class="risk-level ${levelClass}">${data.risk_level}</span></div>
+                    <div style="margin-bottom:8px;"><strong>置信度：</strong> ${data.confidence}%</div>
+                    <div style="margin-bottom:8px;"><strong>检测标签：</strong> ${data.tags.map(t => `<span style="background:#eee; padding:2px 6px; border-radius:4px; margin-right:5px; font-size:11px;">${t}</span>`).join('')}</div>
+                    <div style="font-size:12px; color:#666; border-top:1px solid #eee; padding-top:8px; margin-top:8px;">${data.message}</div>
+                `;
+                document.getElementById('final-result').innerText = "检测完成，结果已在上方面板更新。";
+            }
+            else if(type === 'save_note') {
+                document.getElementById('burn-link-area').style.display = 'block';
+                document.getElementById('burn-res-id').innerText = data.note_id;
+                document.getElementById('final-result').innerText = "秘密已加密存储，ID 已在上方生成。";
+            }
+            else if(type === 'read_note') {
+                document.getElementById('burn-read-result').style.display = 'block';
+                document.getElementById('burn-read-content').innerText = data.content;
+                document.getElementById('final-result').innerText = "内容已读取并从服务器销毁。";
+            }
+            else {
+
+                const resBox = document.getElementById('final-result');
+                // 适配：后端返回 result (标准) 或 result_image
+                const displayImage = data.result || data.result_image;
+                
+                if(data.type === 'image' || data.result_image) {
+                    // 如果不是以 data: 开头，补全 base64 前缀
+                    const src = displayImage.startsWith('data:') ? displayImage : 'data:image/png;base64,' + displayImage;
+                    resBox.innerHTML = `<img src="${src}" style="max-width:100%; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">`;
+                    if(data.message) log('INFO', data.message); 
+                } else {
+                    resBox.innerText = data.result || data.content || data.note_id || "操作完成";
+                    if(type === 'table_ocr' && data.plain_text) {
+                        document.getElementById('plain-result-area').style.display = 'block';
+                        document.getElementById('plain-result').innerText = data.plain_text;
+                    }
+                    if(type === 'ocr') document.getElementById('btn-ai-trigger').style.display = 'block';
+                }
+            }
+            log('SUCCESS', '任务完成');
+        } catch(e) { 
+            log('ERR', e.message); 
+            if(type === 'audit') document.getElementById('audit-output').innerText = "❌ 处理失败: " + e.message;
+        }
     }
+
 
     async function runAiCleanup() {
         const btn = document.getElementById('btn-ai-trigger');
-        btn.disabled = true; btn.innerText = "🧠 正在重排...";
-        document.getElementById('ai-result-box').style.display = 'block';
-        document.getElementById('ai-result-content').innerText = "⏳ 正在分析...";
+        btn.innerText = "🧠 处理中...";
         try {
-            const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'ai_clean', content: document.getElementById('final-result').innerText }) });
+            const res = await fetch(API_URL, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'ai_clean', content: document.getElementById('final-result').innerText }) 
+            });
             const data = await res.json();
-            document.getElementById('ai-result-content').innerText = data.result || data.error || "AI 处理异常";
+            document.getElementById('ai-result-box').style.display = 'block';
+            document.getElementById('ai-result-content').innerText = data.result;
             document.getElementById('btn-trans-trigger').style.display = 'block';
-        } catch (e) { document.getElementById('ai-result-content').innerText = "AI重排失败"; }
-        finally { btn.disabled = false; btn.innerText = "✨ AI 智能重排"; }
+        } finally { btn.innerText = "✨ AI 智能重排"; }
     }
 
     async function runAiTranslate() {
         const btn = document.getElementById('btn-trans-trigger');
-        btn.disabled = true; btn.innerText = "🏮 正在翻译...";
-        document.getElementById('trans-result-box').style.display = 'block';
-        document.getElementById('trans-result-content').innerText = "⏳ 正在翻译...";
+        btn.innerText = "🏮 翻译中...";
         try {
-            const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'ai_translate', content: document.getElementById('ai-result-content').innerText }) });
+            const res = await fetch(API_URL, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'ai_translate', content: document.getElementById('ai-result-content').innerText }) 
+            });
             const data = await res.json();
-            document.getElementById('trans-result-content').innerText = data.result || data.error || "翻译异常";
-        } catch (e) { document.getElementById('trans-result-content').innerText = "翻译失败"; }
-        finally { btn.disabled = false; btn.innerText = "🏮 中外文互译"; }
+            document.getElementById('trans-result-box').style.display = 'block';
+            document.getElementById('trans-result-content').innerText = data.result;
+        } finally { btn.innerText = "🏮 中外文互译"; }
+    }
+
+    async function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        await navigator.clipboard.writeText(text);
+        alert("已复制");
     }
 </script>
 </body>
